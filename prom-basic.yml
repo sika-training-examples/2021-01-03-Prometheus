@@ -1,0 +1,82 @@
+global:
+  scrape_interval: 1s
+
+rule_files:
+  - "prom-queries.rules.yml"
+
+scrape_configs:
+  - job_name: "prometheus"
+    static_configs:
+      - targets:
+          - "localhost:9090"
+
+  - job_name: "example-random"
+    static_configs:
+      - targets:
+          - "localhost:8080"
+          - "localhost:8081"
+        labels:
+          env: "prod"
+      - targets:
+          - "localhost:8082"
+        labels:
+          env: "dev"
+
+  - job_name: "example-web"
+    static_configs:
+      - targets:
+          - "prom-demo-data0.sikademo.com:80"
+
+  - job_name: nodes
+    static_configs:
+      - targets:
+          - prom0.sikademo.com:9100
+          - prom1.sikademo.com:9100
+          - prom2.sikademo.com:9100
+          - prom3.sikademo.com:9100
+          - prom4.sikademo.com:9100
+          - prom5.sikademo.com:9100
+          - prom6.sikademo.com:9100
+
+  - job_name: blackbox
+    metrics_path: /probe
+    params:
+      module:
+        - http_2xx
+    static_configs:
+      - targets:
+          - https://sika.io
+          - https://foo.int
+          - https://google.com
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - source_labels: [__scheme__]
+        target_label: scheme
+      - target_label: __address__
+        replacement: prom0.sikademo.com:9115
+
+  - job_name: docker
+    static_configs:
+      - targets:
+          - prom0.sikademo.com:9338
+          - localhost:9338
+          - nel.l.oxs.cz:9338
+
+  - job_name: pushgw
+    static_configs:
+      - targets:
+          - prom0.sikademo.com:9091
+    relabel_configs:
+      - source_labels: [exported_instance]
+        target_label: instance
+      - source_labels: [exported_job]
+        target_label: job
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - "localhost:9093"
